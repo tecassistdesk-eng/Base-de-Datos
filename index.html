@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema Electoral PRO v6</title>
+  <title>Sistema Electoral PRO v7</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <style>
@@ -30,7 +30,7 @@
           <i class="fa-solid fa-check-to-slot text-3xl"></i>
         </div>
         <h1 class="text-2xl font-bold text-slate-900">Sistema Electoral PRO</h1>
-        <p class="text-sm text-slate-500 mt-1">Control de Campaña y Día Electoral</p>
+        <p class="text-sm text-slate-500 mt-1">Gestión de Campaña, Control y Escrutinio E14</p>
       </div>
       <form id="form-login" class="space-y-4">
         <div>
@@ -50,7 +50,6 @@
 
   <!-- APP PRINCIPAL CON SIDEBAR -->
   <div id="app-shell" class="hidden min-h-screen flex">
-    <!-- Overlay móvil -->
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden"></div>
 
     <!-- SIDEBAR IZQUIERDO -->
@@ -68,24 +67,32 @@
         </button>
       </div>
 
-      <div class="px-6 py-4 bg-slate-800/50 border-b border-slate-800">
+      <div class="px-6 py-4 bg-slate-800/50 border-b border-slate-800 space-y-1">
         <p class="text-xs text-slate-400">Sesión activa:</p>
         <p id="user-display-name" class="font-semibold text-sm truncate">Usuario</p>
         <p id="user-display-code" class="text-xs text-blue-400 font-mono">COD: ---</p>
+        <div class="pt-1">
+          <span id="sidebar-campana" class="inline-block text-[11px] bg-rose-600/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
+            CAMPAÑA 1
+          </span>
+        </div>
       </div>
 
       <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
         <button onclick="navegar('dashboard')" data-nav="dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
-          <i class="fa-solid fa-chart-pie w-5 text-blue-400"></i> Reportes y Avance
+          <i class="fa-solid fa-chart-pie w-5 text-blue-400"></i> Reportes y Gráficas
         </button>
         <button onclick="navegar('registro')" data-nav="registro" id="menu-registro" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
-          <i class="fa-solid fa-user-plus w-5 text-emerald-400"></i> Anexar / Verificar Votante
+          <i class="fa-solid fa-user-plus w-5 text-emerald-400"></i> Anexar / Editar Votante
         </button>
         <button onclick="navegar('control')" data-nav="control" id="menu-control" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
           <i class="fa-solid fa-id-card-clip w-5 text-amber-400"></i> Puesto de Control
         </button>
+        <button onclick="navegar('e14')" data-nav="e14" id="menu-e14" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
+          <i class="fa-solid fa-file-invoice w-5 text-purple-400"></i> E14 y Cruce Votos
+        </button>
         <button onclick="navegar('usuarios')" data-nav="usuarios" id="menu-usuarios" class="nav-btn hidden w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
-          <i class="fa-solid fa-users-gear w-5 text-purple-400"></i> Usuarios y Roles
+          <i class="fa-solid fa-users-gear w-5 text-pink-400"></i> Usuarios y Campañas
         </button>
       </nav>
 
@@ -98,13 +105,15 @@
 
     <!-- CONTENIDO PRINCIPAL -->
     <div class="flex-1 flex flex-col min-w-0">
-      <!-- Header Superior Móvil/Desktop -->
       <header class="bg-white border-b border-slate-200 px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-10">
         <div class="flex items-center gap-3">
           <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100">
             <i class="fa-solid fa-bars text-xl"></i>
           </button>
-          <h1 id="page-title" class="text-lg lg:text-xl font-bold text-slate-800">Reportes en Tiempo Real</h1>
+          <div>
+            <h1 id="page-title" class="text-lg lg:text-xl font-bold text-slate-800">Reportes y Gráficas</h1>
+            <p class="text-xs text-slate-500">Campaña Activa: <strong id="header-campana" class="text-rose-600">CAMPAÑA 1</strong></p>
+          </div>
         </div>
         <button onclick="cargarEstadisticas()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2">
           <i class="fa-solid fa-rotate"></i> <span class="hidden sm:inline">Actualizar</span>
@@ -113,12 +122,37 @@
 
       <main class="p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
 
-        <!-- SECCIÓN 1: DASHBOARD Y REPORTES -->
+        <!-- =============================================================== -->
+        <!-- SECCIÓN 1: DASHBOARD, FILTROS POR LÍDER Y GRÁFICA LUGAR / MESA -->
+        <!-- =============================================================== -->
         <section id="sec-dashboard" class="space-y-6">
-          <!-- KPIs -->
+
+          <!-- Barra de Filtros Globales (Líder y Estado Puesto de Control) -->
+          <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 flex flex-col md:flex-row gap-4 items-end">
+            <div class="w-full md:w-1/3" id="box-filtro-lider">
+              <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Filtrar por Líder</label>
+              <select id="filtro-select-lider" onchange="aplicarFiltrosDashboard()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold bg-slate-50">
+                <option value="TODOS">-- TODOS LOS LÍDERES --</option>
+              </select>
+            </div>
+            <div class="w-full md:w-1/3">
+              <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Estado Puesto de Control</label>
+              <select id="filtro-select-estado" onchange="aplicarFiltrosDashboard()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold bg-slate-50">
+                <option value="TODOS">TODOS (Pasaron y Faltan)</option>
+                <option value="PASO">✅ SÍ PASARON POR CONTROL</option>
+                <option value="FALTA">⏳ NO HAN PASADO (FALTAN)</option>
+              </select>
+            </div>
+            <div class="w-full md:w-1/3">
+              <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Búsqueda Rápida</label>
+              <input type="text" id="filtro-votantes" onkeyup="aplicarFiltrosDashboard()" placeholder="Cédula, nombre, lugar o mesa..." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <!-- KPIs Dinámicos según Filtro -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200">
-              <p class="text-xs font-bold uppercase text-slate-400">Total Registrados</p>
+              <p class="text-xs font-bold uppercase text-slate-400">Total Votantes (Filtro)</p>
               <p id="kpi-total" class="text-3xl font-extrabold text-slate-800 mt-1">0</p>
             </div>
             <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200">
@@ -135,9 +169,36 @@
             </div>
           </div>
 
+          <!-- GRÁFICA Y TABLA DETALLADA: LUGAR + MESA + TOTAL (ORDEN DESCENDENTE) -->
+          <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+              <div>
+                <h3 class="font-bold text-slate-800 text-base">Gráfica Detallada por Lugar y Mesa (Mayor a Menor)</h3>
+                <p class="text-xs text-slate-500">Desglose ordenado descendentemente por cantidad de votantes inscritos en cada mesa.</p>
+              </div>
+              <span class="text-xs bg-blue-50 text-blue-700 font-bold px-3 py-1 rounded-full">Orden Descendente ↓</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+                  <tr>
+                    <th class="px-4 py-3">#</th>
+                    <th class="px-4 py-3">Lugar de Votación</th>
+                    <th class="px-4 py-3 text-center">Mesa</th>
+                    <th class="px-4 py-3 text-center">Total Base</th>
+                    <th class="px-4 py-3 text-center text-emerald-700">Pasaron</th>
+                    <th class="px-4 py-3 text-center text-amber-700">Faltan</th>
+                    <th class="px-4 py-3 w-56">Gráfica de Peso</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-lugar-mesa" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Rendimiento por Líderes -->
           <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
-            <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+            <div class="p-5 border-b border-slate-200">
               <h3 class="font-bold text-slate-800">Cumplimiento por Líder</h3>
             </div>
             <div class="overflow-x-auto">
@@ -147,7 +208,7 @@
                     <th class="px-4 py-3">Código</th>
                     <th class="px-4 py-3">Líder</th>
                     <th class="px-4 py-3 text-center">Meta</th>
-                    <th class="px-4 py-3 text-center">Votaron</th>
+                    <th class="px-4 py-3 text-center">Pasaron</th>
                     <th class="px-4 py-3 text-center">Faltan</th>
                     <th class="px-4 py-3">Progreso</th>
                   </tr>
@@ -157,23 +218,24 @@
             </div>
           </div>
 
-          <!-- Listado Detallado de Votantes -->
+          <!-- Listado Detallado de Votantes (Con botón Editar para Líder y Admin) -->
           <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
-            <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row gap-3 justify-between sm:items-center">
-              <h3 class="font-bold text-slate-800">Listado de Votantes y Estado</h3>
-              <input type="text" id="filtro-votantes" onkeyup="filtrarTablaVotantes()" placeholder="Buscar por cédula, nombre o líder..." class="px-3 py-2 border border-slate-300 rounded-xl text-sm w-full sm:w-72 outline-none focus:ring-2 focus:ring-blue-500" />
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+              <h3 class="font-bold text-slate-800">Listado Detallado de Votantes</h3>
+              <span class="text-xs text-slate-500" id="contador-tabla-votantes">0 registros</span>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm text-left">
                 <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
                   <tr>
-                    <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3">Control</th>
                     <th class="px-4 py-3">Cédula</th>
                     <th class="px-4 py-3">Votante</th>
-                    <th class="px-4 py-3">Puesto / Mesa</th>
-                    <th class="px-4 py-3">Jurado</th>
+                    <th class="px-4 py-3">Lugar de Votación</th>
+                    <th class="px-4 py-3 text-center">Mesa</th>
+                    <th class="px-4 py-3 text-center">Jurado</th>
                     <th class="px-4 py-3">Líder</th>
-                    <th class="px-4 py-3 text-right admin-only-col">Acciones</th>
+                    <th class="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="tabla-votantes" class="divide-y divide-slate-100"></tbody>
@@ -182,26 +244,25 @@
           </div>
         </section>
 
-        <!-- SECCIÓN 2: ANEXAR / VERIFICAR VOTANTE -->
+        <!-- =============================================================== -->
+        <!-- SECCIÓN 2: ANEXAR / EDITAR VOTANTE (DISPONIBLE PARA LÍDER/ADMIN)-->
+        <!-- =============================================================== -->
         <section id="sec-registro" class="hidden max-w-3xl mx-auto">
           <div class="bg-white p-6 lg:p-8 rounded-2xl shadow-xs border border-slate-200 space-y-6">
             <div>
               <h2 class="text-xl font-bold text-slate-800" id="titulo-form-votante">Anexar Nuevo Votante</h2>
-              <p class="text-sm text-slate-500">Digita la cédula para verificar si ya tiene líder o traer sus datos de la bodega histórica.</p>
+              <p class="text-sm text-slate-500">Verifica la cédula para evitar duplicados o traer datos de la bodega histórica.</p>
             </div>
 
-            <!-- Buscador rápido CC -->
-            <div class="flex gap-2">
+            <div class="flex gap-2" id="box-buscador-cc">
               <input type="number" id="vot-cc" placeholder="Número de Cédula (CC)" class="flex-1 px-4 py-3 border border-slate-300 rounded-xl font-mono text-lg outline-none focus:ring-2 focus:ring-blue-600" />
               <button type="button" onclick="verificarCedulaPreRegistro()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold flex items-center gap-2">
                 <i class="fa-solid fa-magnifying-glass"></i> Verificar
               </button>
             </div>
 
-            <!-- Alerta de Resultado de Búsqueda -->
             <div id="alerta-preregistro" class="hidden p-4 rounded-xl text-sm font-medium border"></div>
 
-            <!-- Formulario de Datos -->
             <form id="form-votante" class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input type="hidden" id="vot-es-edicion" value="false" />
               <div class="md:col-span-2">
@@ -214,12 +275,12 @@
                 <datalist id="lista-municipios"></datalist>
               </div>
               <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Puesto de Votación *</label>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Lugar / Puesto de Votación *</label>
                 <input type="text" id="vot-puesto" list="lista-puestos" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl uppercase outline-none focus:ring-2 focus:ring-blue-600" />
                 <datalist id="lista-puestos"></datalist>
               </div>
               <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Mesa *</label>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Mesa de Votación *</label>
                 <input type="text" id="vot-mesa" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-600" />
               </div>
               <div>
@@ -239,14 +300,16 @@
                   Guardar Votante
                 </button>
                 <button type="button" onclick="resetFormVotante()" class="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl">
-                  Limpiar
+                  Limpiar / Cancelar
                 </button>
               </div>
             </form>
           </div>
         </section>
 
-        <!-- SECCIÓN 3: PUESTO DE CONTROL (DÍA D) -->
+        <!-- =============================================================== -->
+        <!-- SECCIÓN 3: PUESTO DE CONTROL (DÍA D)                            -->
+        <!-- =============================================================== -->
         <section id="sec-control" class="hidden max-w-2xl mx-auto space-y-6">
           <div class="bg-white p-6 lg:p-8 rounded-2xl shadow-xs border border-slate-200 space-y-5">
             <div class="text-center">
@@ -262,7 +325,6 @@
               </button>
             </div>
 
-            <!-- Ficha de Resultado Puesto de Control -->
             <div id="ctrl-resultado" class="hidden border-2 rounded-2xl p-6 space-y-4">
               <div class="flex justify-between items-start">
                 <div>
@@ -299,8 +361,117 @@
           </div>
         </section>
 
-        <!-- SECCIÓN 4: GESTIÓN DE USUARIOS Y ROLES (SOLO ADMIN) -->
+        <!-- =============================================================== -->
+        <!-- SECCIÓN 4: MÓDULO E14, EVIDENCIA FOTOGRÁFICA Y CRUCE            -->
+        <!-- =============================================================== -->
+        <section id="sec-e14" class="hidden space-y-6">
+          <!-- Formulario Registro E14 -->
+          <div class="bg-white p-6 lg:p-8 rounded-2xl shadow-xs border border-slate-200 max-w-3xl mx-auto">
+            <div class="mb-5">
+              <span class="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Cierre de Mesas</span>
+              <h2 class="text-xl font-bold text-slate-800 mt-2">Registrar Formulario E14 y Evidencia</h2>
+              <p class="text-sm text-slate-500">Ingresa los votos obtenidos en la mesa y adjunta o toma foto del acta E14.</p>
+            </div>
+
+            <form id="form-e14" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Fecha *</label>
+                <input type="date" id="e14-fecha" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-purple-600" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Lugar de Votación *</label>
+                <select id="e14-lugar" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl uppercase outline-none focus:ring-2 focus:ring-purple-600 bg-white">
+                  <option value="">-- Seleccione Lugar --</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Mesa *</label>
+                <input type="text" id="e14-mesa" required placeholder="Ej: 12" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-purple-600" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Total Votos en E14 *</label>
+                <input type="number" id="e14-votos" required min="0" placeholder="0" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-bold text-lg outline-none focus:ring-2 focus:ring-purple-600" />
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Adjuntar o Tomar Foto de Evidencia (Acta E14)</label>
+                <input type="file" id="e14-foto" accept="image/*" capture="environment" class="w-full px-3 py-2 border border-dashed border-purple-400 rounded-xl bg-purple-50/40 text-sm" />
+                <img id="e14-preview" class="hidden mt-3 max-h-48 rounded-xl border border-slate-300 shadow-xs" />
+              </div>
+              <div class="md:col-span-2 pt-2">
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-md transition">
+                  <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Guardar Acta E14 y Evidencia
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- REPORTE: CRUCE BASE DE DATOS VS E14 -->
+          <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-200 bg-slate-900 text-white">
+              <h3 class="font-bold text-base">Reporte Cruce: Base de Datos vs. Votos E14</h3>
+              <p class="text-xs text-slate-300">Comparativa por Lugar y Mesa entre lo inscrito en tu base, lo confirmado en puesto de control y lo reportado en E14.</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+                  <tr>
+                    <th class="px-4 py-3">Lugar de Votación</th>
+                    <th class="px-4 py-3 text-center">Mesa</th>
+                    <th class="px-4 py-3 text-center">Total Base</th>
+                    <th class="px-4 py-3 text-center">Pasaron Control</th>
+                    <th class="px-4 py-3 text-center bg-purple-50 text-purple-800">Votos E14</th>
+                    <th class="px-4 py-3 text-center">Diferencia (E14 vs Base)</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-cruce-e14" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- REPORTE: ACTAS E14 REGISTRADAS CON EVIDENCIA -->
+          <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-200">
+              <h3 class="font-bold text-slate-800">Actas E14 Cargadas y Evidencias Fotográficas</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                  <tr>
+                    <th class="px-4 py-3">Fecha</th>
+                    <th class="px-4 py-3">Lugar</th>
+                    <th class="px-4 py-3 text-center">Mesa</th>
+                    <th class="px-4 py-3 text-center">Total Votos</th>
+                    <th class="px-4 py-3">Registró</th>
+                    <th class="px-4 py-3 text-right">Evidencia</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-actas-e14" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- SECCIÓN 5: GESTIÓN DE USUARIOS Y CAMPAÑAS (SOLO ADMIN)          -->
+        <!-- =============================================================== -->
         <section id="sec-usuarios" class="hidden space-y-6">
+
+          <!-- GESTIÓN DE CAMPAÑAS (INICIAR NUEVA CAMPAÑA Y ARCHIVAR ANTERIOR) -->
+          <div class="bg-gradient-to-r from-rose-900 to-slate-900 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <span class="text-xs uppercase tracking-wider bg-rose-600 px-2.5 py-0.5 rounded font-bold">Ciclo Electoral</span>
+              <h3 class="text-lg font-bold mt-1">Iniciar Nueva Campaña (Archivar Base Actual)</h3>
+              <p class="text-xs text-slate-300 mt-1">Archiva la base de votantes, control y E14 de <strong id="texto-campana-actual">CAMPAÑA 1</strong> y crea una base limpia manteniendo intacta la <strong>Bodega de Datos</strong>.</p>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+              <input type="text" id="input-nueva-campana" placeholder="Ej: ALCALDIA 2027" class="px-4 py-2.5 rounded-xl text-slate-900 font-bold uppercase text-sm outline-none flex-1" />
+              <button onclick="crearNuevaCampana()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm whitespace-nowrap shadow">
+                Iniciar Campaña
+              </button>
+            </div>
+          </div>
+
+          <!-- Formulario Usuarios -->
           <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
             <h3 class="text-lg font-bold text-slate-800 mb-4" id="titulo-form-usuario">Crear / Editar Usuario del Sistema</h3>
             <form id="form-usuario" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -316,8 +487,8 @@
               <div>
                 <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Rol del Sistema *</label>
                 <select id="usr-rol" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-semibold">
-                  <option value="LIDER">LÍDER (Solo Anexa y Verifica)</option>
-                  <option value="CONTROL">PUESTO DE CONTROL (Solo Día D)</option>
+                  <option value="LIDER">LÍDER (Anexa, Verifica y Edita su lista)</option>
+                  <option value="CONTROL">PUESTO DE CONTROL / E14</option>
                   <option value="ADMIN">ADMINISTRADOR (Control Total)</option>
                 </select>
               </div>
@@ -346,7 +517,7 @@
                 <input type="text" id="usr-dir" class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase" />
               </div>
               <div class="md:col-span-3 flex gap-3">
-                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-2.5 rounded-xl">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl">
                   Guardar Usuario
                 </button>
                 <button type="button" onclick="resetFormUsuario()" class="bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl">
@@ -387,13 +558,13 @@
     // =========================================================================
     // PEGA AQUÍ LA URL DE TU IMPLEMENTACIÓN DE GOOGLE APPS SCRIPT (/exec)
     // =========================================================================
-    const API_URL = "https://script.google.com/macros/s/AKfycbwkhwirg33DC6yRa3D35gRmtYsMa2N-mIpn8yi3O-geFJ5Qlynp_cu3CD4oJbecLGZvAA/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxLPtn_DY-9f6oIedN5nVw40cyrumwS7hElzZgAuI7EPJtQPqYTraMqBWl7EkMCK08ofQ/exec";
 
     let currentUser = null;
-    let votantesCache = [];
+    let statsDataGlobal = null;
     let votanteControlActual = null;
+    let fotoE14ComprimidaBase64 = "";
 
-    // Cliente API (usa text/plain para evitar bloqueos CORS preflight en GitHub Pages)
     async function callAPI(payload) {
       showLoader(true);
       try {
@@ -437,6 +608,14 @@
       }
     });
 
+    function actualizarEtiquetasCampana(nombre) {
+      if (!nombre) return;
+      document.getElementById("sidebar-campana").innerText = nombre;
+      document.getElementById("header-campana").innerText = nombre;
+      const txtActual = document.getElementById("texto-campana-actual");
+      if (txtActual) txtActual.innerText = nombre;
+    }
+
     function iniciarApp() {
       document.getElementById("view-login").classList.add("hidden");
       document.getElementById("app-shell").classList.remove("hidden");
@@ -444,18 +623,17 @@
       document.getElementById("user-display-name").innerText = currentUser.nombre;
       document.getElementById("user-display-code").innerText = "COD: " + currentUser.codigo;
       document.getElementById("badge-rol").innerText = currentUser.rol;
+      actualizarEtiquetasCampana(currentUser.campanaActiva || "CAMPAÑA 1");
 
-      // Control de visibilidad por Rol
       const isAdmin = currentUser.rol === "ADMIN";
       const isControl = currentUser.rol === "CONTROL";
 
       document.getElementById("menu-usuarios").classList.toggle("hidden", !isAdmin);
       document.getElementById("div-asignar-lider").classList.toggle("hidden", !isAdmin);
       document.getElementById("menu-registro").classList.toggle("hidden", isControl);
+      document.getElementById("box-filtro-lider").classList.toggle("hidden", !isAdmin && !isControl);
 
-      document.querySelectorAll(".admin-only-col").forEach(el => {
-        el.classList.toggle("hidden", !isAdmin);
-      });
+      document.getElementById("e14-fecha").valueAsDate = new Date();
 
       cargarAjustes();
       if (isControl) {
@@ -471,16 +649,17 @@
     }
 
     function navegar(vista) {
-      ["dashboard", "registro", "control", "usuarios"].forEach(sec => {
+      ["dashboard", "registro", "control", "e14", "usuarios"].forEach(sec => {
         document.getElementById("sec-" + sec).classList.add("hidden");
       });
       document.getElementById("sec-" + vista).classList.remove("hidden");
 
       const titulos = {
-        dashboard: "Reportes y Avance en Tiempo Real",
-        registro: "Anexar y Verificar Votantes",
+        dashboard: "Reportes, Filtros y Gráficas",
+        registro: "Anexar y Editar Votantes",
         control: "Puesto de Control Electoral",
-        usuarios: "Administración de Usuarios y Roles"
+        e14: "Escrutinio E14 y Cruce de Datos",
+        usuarios: "Usuarios, Roles y Campañas"
       };
       document.getElementById("page-title").innerText = titulos[vista];
 
@@ -490,6 +669,7 @@
       }
 
       if (vista === "dashboard") cargarEstadisticas();
+      if (vista === "e14") cargarReporteE14();
       if (vista === "usuarios") cargarUsuarios();
       if (vista === "registro" && !document.getElementById("vot-lider-codigo").value) {
         document.getElementById("vot-lider-codigo").value = currentUser.codigo;
@@ -499,8 +679,27 @@
     async function cargarAjustes() {
       const res = await callAPI({ action: "ajustes" });
       if (res.ok) {
+        actualizarEtiquetasCampana(res.campanaActiva);
         document.getElementById("lista-municipios").innerHTML = res.municipios.map(m => `<option value="${m}">`).join("");
         document.getElementById("lista-puestos").innerHTML = res.puestos.map(p => `<option value="${p}">`).join("");
+        document.getElementById("e14-lugar").innerHTML = `<option value="">-- Seleccione Lugar --</option>` +
+          res.puestos.map(p => `<option value="${p}">${p}</option>`).join("");
+      }
+    }
+
+    // --- NUEVA CAMPAÑA ---
+    async function crearNuevaCampana() {
+      const nombre = document.getElementById("input-nueva-campana").value.trim();
+      if (!nombre) return alert("Escribe el nombre de la nueva campaña.");
+      if (!confirm(`¿Seguro que deseas archivar la campaña actual e iniciar "${nombre.toUpperCase()}"? La base actual quedará respaldada en hojas de archivo.`)) return;
+
+      const res = await callAPI({ action: "nuevaCampana", nombreCampana: nombre, rol: currentUser.rol });
+      alert(res.mensaje);
+      if (res.ok) {
+        document.getElementById("input-nueva-campana").value = "";
+        currentUser.campanaActiva = res.campanaActiva;
+        localStorage.setItem("electoral_session", JSON.stringify(currentUser));
+        actualizarEtiquetasCampana(res.campanaActiva);
       }
     }
 
@@ -517,7 +716,6 @@
       if (res.estado === "YA_ASIGNADO") {
         alerta.classList.add("bg-red-50", "text-red-800", "border-red-300");
         alerta.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> <strong>${res.mensaje}</strong>`;
-        // Llenar datos solo para visualización y bloquear guardado si es LIDER
         document.getElementById("vot-nombre").value = res.datos.nombre;
         document.getElementById("vot-muni").value = res.datos.municipio;
         document.getElementById("vot-puesto").value = res.datos.puesto;
@@ -543,7 +741,7 @@
       }
     }
 
-    // --- GUARDAR / EDITAR VOTANTE ---
+    // --- GUARDAR / EDITAR VOTANTE (PARA ADMIN Y LÍDER) ---
     document.getElementById("form-votante").addEventListener("submit", async (e) => {
       e.preventDefault();
       const esEdicion = document.getElementById("vot-es-edicion").value === "true";
@@ -559,9 +757,18 @@
           : currentUser.codigo
       };
 
-      const res = await callAPI({ action: "guardarVotante", data, esEdicion, rol: currentUser.rol });
+      const res = await callAPI({
+        action: "guardarVotante",
+        data,
+        esEdicion,
+        rol: currentUser.rol,
+        userCode: currentUser.codigo
+      });
       alert(res.mensaje);
-      if (res.ok) resetFormVotante();
+      if (res.ok) {
+        resetFormVotante();
+        if (esEdicion) navegar("dashboard");
+      }
     });
 
     function resetFormVotante() {
@@ -571,12 +778,14 @@
       document.getElementById("vot-es-edicion").value = "false";
       document.getElementById("titulo-form-votante").innerText = "Anexar Nuevo Votante";
       document.getElementById("alerta-preregistro").classList.add("hidden");
+      document.getElementById("btn-guardar-votante").disabled = false;
+      document.getElementById("btn-guardar-votante").classList.remove("opacity-50");
       document.getElementById("vot-lider-codigo").value = currentUser.codigo;
     }
 
-    function editarVotanteAdmin(v) {
+    function editarVotante(v) {
       navegar("registro");
-      document.getElementById("titulo-form-votante").innerText = "Editar Votante (Modo Admin)";
+      document.getElementById("titulo-form-votante").innerText = "Editar Datos de Votante (Lugar, Mesa y Datos)";
       document.getElementById("vot-es-edicion").value = "true";
       document.getElementById("vot-cc").value = v.cc;
       document.getElementById("vot-cc").readOnly = true;
@@ -586,6 +795,8 @@
       document.getElementById("vot-mesa").value = v.mesa;
       document.getElementById("vot-jurado").value = v.jurado;
       document.getElementById("vot-lider-codigo").value = v.codigoLider;
+      document.getElementById("btn-guardar-votante").disabled = false;
+      document.getElementById("btn-guardar-votante").classList.remove("opacity-50");
     }
 
     async function eliminarVotanteAdmin(cc) {
@@ -639,14 +850,10 @@
 
     async function confirmarAsistenciaControl() {
       if (!votanteControlActual) return;
-      const payload = {
+      const res = await callAPI({
         action: "registrarAsistencia",
-        data: {
-          ...votanteControlActual,
-          registradoPor: currentUser.usuario
-        }
-      };
-      const res = await callAPI(payload);
+        data: { ...votanteControlActual, registradoPor: currentUser.usuario }
+      });
       alert(res.mensaje);
       if (res.ok) {
         document.getElementById("ctrl-cc").value = "";
@@ -654,7 +861,7 @@
       }
     }
 
-    // --- DASHBOARD Y REPORTES ---
+    // --- DASHBOARD, FILTROS Y GRÁFICA DESCENDENTE LUGAR / MESA ---
     async function cargarEstadisticas() {
       const res = await callAPI({
         action: "estadisticas",
@@ -663,13 +870,91 @@
       });
       if (!res.ok) return;
 
-      document.getElementById("kpi-total").innerText = res.kpis.total;
-      document.getElementById("kpi-asistieron").innerText = res.kpis.asistieron;
-      document.getElementById("kpi-faltan").innerText = res.kpis.faltan;
-      document.getElementById("kpi-porcentaje").innerText = res.kpis.porcentaje + "%";
+      statsDataGlobal = res;
+      actualizarEtiquetasCampana(res.campanaActiva);
 
-      // Tabla líderes
-      document.getElementById("tabla-lideres-stats").innerHTML = res.resumenLideres.map(l => `
+      // Llenar selector de líderes para filtrar
+      const selectLider = document.getElementById("filtro-select-lider");
+      const valorPrevio = selectLider.value;
+      selectLider.innerHTML = `<option value="TODOS">-- TODOS LOS LÍDERES (${res.resumenLideres.length}) --</option>` +
+        res.resumenLideres.map(l => `<option value="${l.codigo}">${l.nombre} (${l.codigo}) - ${l.total} votantes</option>`).join("");
+      if (valorPrevio) selectLider.value = valorPrevio;
+
+      aplicarFiltrosDashboard();
+    }
+
+    function aplicarFiltrosDashboard() {
+      if (!statsDataGlobal) return;
+
+      const liderSel = document.getElementById("filtro-select-lider").value;
+      const estadoSel = document.getElementById("filtro-select-estado").value;
+      const textoBusq = document.getElementById("filtro-votantes").value.toLowerCase().trim();
+
+      // 1. Filtrar lista de votantes
+      let listaFiltrada = statsDataGlobal.lista.filter(v => {
+        const coincideLider = (liderSel === "TODOS" || v.codigoLider === liderSel);
+        const coincideEstado = (estadoSel === "TODOS") ||
+                               (estadoSel === "PASO" && v.asistio) ||
+                               (estadoSel === "FALTA" && !v.asistio);
+        const coincideTexto = !textoBusq ||
+                              v.cc.includes(textoBusq) ||
+                              v.nombre.toLowerCase().includes(textoBusq) ||
+                              v.puesto.toLowerCase().includes(textoBusq) ||
+                              String(v.mesa).toLowerCase().includes(textoBusq) ||
+                              v.nombreLider.toLowerCase().includes(textoBusq);
+        return coincideLider && coincideEstado && coincideTexto;
+      });
+
+      // 2. Recalcular KPIs según filtro seleccionado
+      const baseParaKpis = statsDataGlobal.lista.filter(v => liderSel === "TODOS" || v.codigoLider === liderSel);
+      const total = baseParaKpis.length;
+      const pasaron = baseParaKpis.filter(v => v.asistio).length;
+      const faltan = total - pasaron;
+      const pct = total > 0 ? Math.round((pasaron / total) * 100) : 0;
+
+      document.getElementById("kpi-total").innerText = total;
+      document.getElementById("kpi-asistieron").innerText = pasaron;
+      document.getElementById("kpi-faltan").innerText = faltan;
+      document.getElementById("kpi-porcentaje").innerText = pct + "%";
+
+      // 3. Recalcular Gráfica y Tabla Lugar + Mesa (Descendente) según el filtro
+      let mapaLM = {};
+      listaFiltrada.forEach(v => {
+        const key = `${v.puesto}|||${v.mesa}`;
+        if (!mapaLM[key]) mapaLM[key] = { lugar: v.puesto, mesa: v.mesa, total: 0, asistieron: 0, faltan: 0 };
+        mapaLM[key].total++;
+        if (v.asistio) mapaLM[key].asistieron++;
+        else mapaLM[key].faltan++;
+      });
+
+      const arrayLM = Object.values(mapaLM).sort((a, b) => b.total - a.total);
+      const maxMesa = arrayLM.length > 0 ? arrayLM[0].total : 1;
+
+      document.getElementById("tabla-lugar-mesa").innerHTML = arrayLM.map((item, idx) => {
+        const anchoBarra = Math.round((item.total / maxMesa) * 100);
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-bold text-slate-400">${idx + 1}</td>
+            <td class="px-4 py-3 font-bold text-slate-800">${item.lugar}</td>
+            <td class="px-4 py-3 text-center"><span class="bg-blue-100 text-blue-800 font-mono font-bold px-2.5 py-0.5 rounded">MESA ${item.mesa}</span></td>
+            <td class="px-4 py-3 text-center font-extrabold text-slate-900 text-base">${item.total}</td>
+            <td class="px-4 py-3 text-center font-bold text-emerald-600">${item.asistieron}</td>
+            <td class="px-4 py-3 text-center font-bold text-amber-600">${item.faltan}</td>
+            <td class="px-4 py-3">
+              <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 h-3 rounded-full" style="width: ${anchoBarra}%"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("") || `<tr><td colspan="7" class="p-6 text-center text-slate-400">No hay datos para el filtro seleccionado</td></tr>`;
+
+      // 4. Tabla de Líderes
+      const lideresFiltrados = liderSel === "TODOS"
+        ? statsDataGlobal.resumenLideres
+        : statsDataGlobal.resumenLideres.filter(l => l.codigo === liderSel);
+
+      document.getElementById("tabla-lideres-stats").innerHTML = lideresFiltrados.map(l => `
         <tr class="hover:bg-slate-50">
           <td class="px-4 py-3 font-mono font-bold text-blue-600">${l.codigo}</td>
           <td class="px-4 py-3 font-semibold">${l.nombre}</td>
@@ -679,7 +964,7 @@
           <td class="px-4 py-3 w-48">
             <div class="flex items-center gap-2">
               <div class="w-full bg-slate-200 rounded-full h-2.5">
-                <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${l.porcentaje}%"></div>
+                <div class="bg-emerald-500 h-2.5 rounded-full" style="width: ${l.porcentaje}%"></div>
               </div>
               <span class="text-xs font-bold">${l.porcentaje}%</span>
             </div>
@@ -687,39 +972,115 @@
         </tr>
       `).join("");
 
-      votantesCache = res.lista;
-      renderTablaVotantes(votantesCache);
-    }
-
-    function renderTablaVotantes(lista) {
+      // 5. Renderizar Tabla de Votantes (Líder puede editar sus propios registros; Admin edita y elimina)
       const isAdmin = currentUser.rol === "ADMIN";
-      document.getElementById("tabla-votantes").innerHTML = lista.map(v => `
-        <tr class="hover:bg-slate-50">
-          <td class="px-4 py-3">
-            ${v.asistio
-              ? '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">PASÓ</span>'
-              : '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">FALTA</span>'}
-          </td>
-          <td class="px-4 py-3 font-mono">${v.cc}</td>
-          <td class="px-4 py-3 font-semibold">${v.nombre}</td>
-          <td class="px-4 py-3 text-xs">${v.puesto} <strong class="text-blue-600">(Mesa ${v.mesa})</strong></td>
-          <td class="px-4 py-3">${v.jurado}</td>
-          <td class="px-4 py-3 text-xs font-medium">${v.nombreLider}</td>
-          ${isAdmin ? `
-            <td class="px-4 py-3 text-right space-x-2">
-              <button onclick='editarVotanteAdmin(${JSON.stringify(v)})' class="text-blue-600 hover:underline font-semibold">Editar</button>
-              <button onclick="eliminarVotanteAdmin('${v.cc}')" class="text-red-600 hover:underline font-semibold">Eliminar</button>
-            </td>` : ''}
-        </tr>
-      `).join("");
+      document.getElementById("contador-tabla-votantes").innerText = `${listaFiltrada.length} registros`;
+      document.getElementById("tabla-votantes").innerHTML = listaFiltrada.map(v => {
+        const puedeEditar = isAdmin || (currentUser.rol === "LIDER" && v.codigoLider === currentUser.codigo);
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3">
+              ${v.asistio
+                ? '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">PASÓ</span>'
+                : '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">FALTA</span>'}
+            </td>
+            <td class="px-4 py-3 font-mono">${v.cc}</td>
+            <td class="px-4 py-3 font-semibold">${v.nombre}</td>
+            <td class="px-4 py-3 text-xs font-medium">${v.puesto}</td>
+            <td class="px-4 py-3 text-center font-bold text-blue-600">${v.mesa}</td>
+            <td class="px-4 py-3 text-center text-xs">${v.jurado}</td>
+            <td class="px-4 py-3 text-xs">${v.nombreLider}</td>
+            <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+              ${puedeEditar ? `<button onclick='editarVotante(${JSON.stringify(v)})' class="text-blue-600 hover:underline font-semibold"><i class="fa-solid fa-pen-to-square"></i> Editar</button>` : ''}
+              ${isAdmin ? `<button onclick="eliminarVotanteAdmin('${v.cc}')" class="text-red-600 hover:underline font-semibold">Eliminar</button>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join("");
     }
 
-    function filtrarTablaVotantes() {
-      const q = document.getElementById("filtro-votantes").value.toLowerCase();
-      const filtrados = votantesCache.filter(v =>
-        v.cc.includes(q) || v.nombre.toLowerCase().includes(q) || v.nombreLider.toLowerCase().includes(q)
-      );
-      renderTablaVotantes(filtrados);
+    // --- MÓDULO E14 Y COMPRESIÓN DE FOTO ---
+    document.getElementById("e14-foto").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          const maxW = 1000;
+          const scale = maxW / img.width;
+          canvas.width = img.width > maxW ? maxW : img.width;
+          canvas.height = img.width > maxW ? img.height * scale : img.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          fotoE14ComprimidaBase64 = canvas.toDataURL("image/jpeg", 0.75);
+          const preview = document.getElementById("e14-preview");
+          preview.src = fotoE14ComprimidaBase64;
+          preview.classList.remove("hidden");
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById("form-e14").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = {
+        fecha: document.getElementById("e14-fecha").value,
+        puesto: document.getElementById("e14-lugar").value,
+        mesa: document.getElementById("e14-mesa").value,
+        totalVotos: document.getElementById("e14-votos").value,
+        fotoBase64: fotoE14ComprimidaBase64,
+        registradoPor: currentUser.usuario
+      };
+
+      const res = await callAPI({ action: "guardarE14", data });
+      alert(res.mensaje);
+      if (res.ok) {
+        document.getElementById("form-e14").reset();
+        document.getElementById("e14-fecha").valueAsDate = new Date();
+        document.getElementById("e14-preview").classList.add("hidden");
+        fotoE14ComprimidaBase64 = "";
+        cargarReporteE14();
+      }
+    });
+
+    async function cargarReporteE14() {
+      const res = await callAPI({ action: "obtenerE14" });
+      if (!res.ok) return;
+
+      // Tabla Cruce Base de Datos vs E14
+      document.getElementById("tabla-cruce-e14").innerHTML = res.cruce.map(c => {
+        const diffColor = c.diferenciaBaseVsE14 >= 0 ? "text-emerald-600" : "text-red-600";
+        const signo = c.diferenciaBaseVsE14 > 0 ? "+" : "";
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-bold">${c.puesto}</td>
+            <td class="px-4 py-3 text-center font-mono font-bold text-blue-600">MESA ${c.mesa}</td>
+            <td class="px-4 py-3 text-center font-bold">${c.totalBase}</td>
+            <td class="px-4 py-3 text-center text-emerald-700 font-semibold">${c.pasaronControl}</td>
+            <td class="px-4 py-3 text-center bg-purple-50/60 font-extrabold text-purple-800 text-base">${c.votosE14}</td>
+            <td class="px-4 py-3 text-center font-extrabold ${diffColor}">${signo}${c.diferenciaBaseVsE14}</td>
+          </tr>
+        `;
+      }).join("") || `<tr><td colspan="6" class="p-6 text-center text-slate-400">Sin datos para cruzar aún</td></tr>`;
+
+      // Tabla Actas E14 con Foto
+      document.getElementById("tabla-actas-e14").innerHTML = res.actas.map(a => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 text-xs">${a.fecha}</td>
+          <td class="px-4 py-3 font-bold">${a.puesto}</td>
+          <td class="px-4 py-3 text-center font-mono font-bold">MESA ${a.mesa}</td>
+          <td class="px-4 py-3 text-center font-extrabold text-purple-700 text-base">${a.votos}</td>
+          <td class="px-4 py-3 text-xs">${a.registradoPor}</td>
+          <td class="px-4 py-3 text-right">
+            ${a.fotoUrl && a.fotoUrl.startsWith("http")
+              ? `<a href="${a.fotoUrl}" target="_blank" class="inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-xs font-bold hover:bg-purple-200"><i class="fa-solid fa-image"></i> Ver Foto</a>`
+              : `<span class="text-xs text-slate-400">Sin foto</span>`}
+          </td>
+        </tr>
+      `).join("") || `<tr><td colspan="6" class="p-6 text-center text-slate-400">No hay actas E14 registradas</td></tr>`;
     }
 
     // --- GESTIÓN DE USUARIOS Y ROLES (ADMIN) ---
@@ -807,7 +1168,6 @@
       if (res.ok) cargarUsuarios();
     }
 
-    // Recuperar sesión activa si recarga la página
     window.addEventListener("DOMContentLoaded", () => {
       const saved = localStorage.getItem("electoral_session");
       if (saved) {
