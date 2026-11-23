@@ -471,7 +471,7 @@
             </div>
           </div>
 
-          <!-- Formulario Usuarios -->
+          <!-- Formulario Usuarios (Código Automático) -->
           <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
             <h3 class="text-lg font-bold text-slate-800 mb-4" id="titulo-form-usuario">Crear / Editar Usuario del Sistema</h3>
             <form id="form-usuario" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -493,8 +493,8 @@
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Código Interno *</label>
-                <input type="text" id="usr-codigo" required placeholder="Ej: L01" class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase" />
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Código Interno (Automático)</label>
+                <input type="text" id="usr-codigo" readonly placeholder="AUTOMÁTICO (Ej: L01)" class="w-full px-3 py-2 border border-slate-200 bg-slate-100 text-slate-500 font-mono font-bold rounded-xl uppercase cursor-not-allowed" />
               </div>
               <div>
                 <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre Completo *</label>
@@ -741,7 +741,7 @@
       }
     }
 
-    // --- GUARDAR / EDITAR VOTANTE (PARA ADMIN Y LÍDER) ---
+    // --- GUARDAR / EDITAR VOTANTE ---
     document.getElementById("form-votante").addEventListener("submit", async (e) => {
       e.preventDefault();
       const esEdicion = document.getElementById("vot-es-edicion").value === "true";
@@ -873,7 +873,6 @@
       statsDataGlobal = res;
       actualizarEtiquetasCampana(res.campanaActiva);
 
-      // Llenar selector de líderes para filtrar
       const selectLider = document.getElementById("filtro-select-lider");
       const valorPrevio = selectLider.value;
       selectLider.innerHTML = `<option value="TODOS">-- TODOS LOS LÍDERES (${res.resumenLideres.length}) --</option>` +
@@ -890,7 +889,6 @@
       const estadoSel = document.getElementById("filtro-select-estado").value;
       const textoBusq = document.getElementById("filtro-votantes").value.toLowerCase().trim();
 
-      // 1. Filtrar lista de votantes
       let listaFiltrada = statsDataGlobal.lista.filter(v => {
         const coincideLider = (liderSel === "TODOS" || v.codigoLider === liderSel);
         const coincideEstado = (estadoSel === "TODOS") ||
@@ -905,7 +903,6 @@
         return coincideLider && coincideEstado && coincideTexto;
       });
 
-      // 2. Recalcular KPIs según filtro seleccionado
       const baseParaKpis = statsDataGlobal.lista.filter(v => liderSel === "TODOS" || v.codigoLider === liderSel);
       const total = baseParaKpis.length;
       const pasaron = baseParaKpis.filter(v => v.asistio).length;
@@ -917,7 +914,6 @@
       document.getElementById("kpi-faltan").innerText = faltan;
       document.getElementById("kpi-porcentaje").innerText = pct + "%";
 
-      // 3. Recalcular Gráfica y Tabla Lugar + Mesa (Descendente) según el filtro
       let mapaLM = {};
       listaFiltrada.forEach(v => {
         const key = `${v.puesto}|||${v.mesa}`;
@@ -949,7 +945,6 @@
         `;
       }).join("") || `<tr><td colspan="7" class="p-6 text-center text-slate-400">No hay datos para el filtro seleccionado</td></tr>`;
 
-      // 4. Tabla de Líderes
       const lideresFiltrados = liderSel === "TODOS"
         ? statsDataGlobal.resumenLideres
         : statsDataGlobal.resumenLideres.filter(l => l.codigo === liderSel);
@@ -972,7 +967,6 @@
         </tr>
       `).join("");
 
-      // 5. Renderizar Tabla de Votantes (Líder puede editar sus propios registros; Admin edita y elimina)
       const isAdmin = currentUser.rol === "ADMIN";
       document.getElementById("contador-tabla-votantes").innerText = `${listaFiltrada.length} registros`;
       document.getElementById("tabla-votantes").innerHTML = listaFiltrada.map(v => {
@@ -1050,7 +1044,6 @@
       const res = await callAPI({ action: "obtenerE14" });
       if (!res.ok) return;
 
-      // Tabla Cruce Base de Datos vs E14
       document.getElementById("tabla-cruce-e14").innerHTML = res.cruce.map(c => {
         const diffColor = c.diferenciaBaseVsE14 >= 0 ? "text-emerald-600" : "text-red-600";
         const signo = c.diferenciaBaseVsE14 > 0 ? "+" : "";
@@ -1066,7 +1059,6 @@
         `;
       }).join("") || `<tr><td colspan="6" class="p-6 text-center text-slate-400">Sin datos para cruzar aún</td></tr>`;
 
-      // Tabla Actas E14 con Foto
       document.getElementById("tabla-actas-e14").innerHTML = res.actas.map(a => `
         <tr class="hover:bg-slate-50">
           <td class="px-4 py-3 text-xs">${a.fecha}</td>
