@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema Electoral PRO v6</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    .sidebar-transition { transition: transform 0.3s ease-in-out; }
+    .loader { border-top-color: #2563eb; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased">
+
+  <!-- LOADER GLOBAL -->
+  <div id="loader" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center">
+    <div class="bg-white p-5 rounded-2xl shadow-xl flex items-center gap-3">
+      <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-8 w-8"></div>
+      <span class="font-semibold text-slate-700" id="loader-text">Procesando...</span>
+    </div>
+  </div>
+
+  <!-- VISTA LOGIN -->
+  <div id="view-login" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <i class="fa-solid fa-check-to-slot text-3xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900">Sistema Electoral PRO</h1>
+        <p class="text-sm text-slate-500 mt-1">Control de Campaña y Día Electoral</p>
+      </div>
+      <form id="form-login" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Usuario</label>
+          <input type="text" id="login-user" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Ej: admin" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña</label>
+          <input type="password" id="login-pass" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 outline-none" placeholder="••••••••" />
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition">
+          Iniciar Sesión
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- APP PRINCIPAL CON SIDEBAR -->
+  <div id="app-shell" class="hidden min-h-screen flex">
+    <!-- Overlay móvil -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden"></div>
+
+    <!-- SIDEBAR IZQUIERDO -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white flex flex-col transform -translate-x-full lg:translate-x-0 sidebar-transition">
+      <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-check-to-slot text-blue-400 text-2xl"></i>
+          <div>
+            <h2 class="font-bold text-lg leading-tight">Electoral PRO</h2>
+            <span id="badge-rol" class="text-[10px] uppercase tracking-wider bg-blue-600 px-2 py-0.5 rounded-full font-bold">ROL</span>
+          </div>
+        </div>
+        <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-800/50 border-b border-slate-800">
+        <p class="text-xs text-slate-400">Sesión activa:</p>
+        <p id="user-display-name" class="font-semibold text-sm truncate">Usuario</p>
+        <p id="user-display-code" class="text-xs text-blue-400 font-mono">COD: ---</p>
+      </div>
+
+      <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+        <button onclick="navegar('dashboard')" data-nav="dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
+          <i class="fa-solid fa-chart-pie w-5 text-blue-400"></i> Reportes y Avance
+        </button>
+        <button onclick="navegar('registro')" data-nav="registro" id="menu-registro" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
+          <i class="fa-solid fa-user-plus w-5 text-emerald-400"></i> Anexar / Verificar Votante
+        </button>
+        <button onclick="navegar('control')" data-nav="control" id="menu-control" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
+          <i class="fa-solid fa-id-card-clip w-5 text-amber-400"></i> Puesto de Control
+        </button>
+        <button onclick="navegar('usuarios')" data-nav="usuarios" id="menu-usuarios" class="nav-btn hidden w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium hover:bg-slate-800 transition">
+          <i class="fa-solid fa-users-gear w-5 text-purple-400"></i> Usuarios y Roles
+        </button>
+      </nav>
+
+      <div class="p-4 border-t border-slate-800">
+        <button onclick="cerrarSesion()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white text-sm font-semibold transition">
+          <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Header Superior Móvil/Desktop -->
+      <header class="bg-white border-b border-slate-200 px-4 lg:px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-bars text-xl"></i>
+          </button>
+          <h1 id="page-title" class="text-lg lg:text-xl font-bold text-slate-800">Reportes en Tiempo Real</h1>
+        </div>
+        <button onclick="cargarEstadisticas()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-medium flex items-center gap-2">
+          <i class="fa-solid fa-rotate"></i> <span class="hidden sm:inline">Actualizar</span>
+        </button>
+      </header>
+
+      <main class="p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+
+        <!-- SECCIÓN 1: DASHBOARD Y REPORTES -->
+        <section id="sec-dashboard" class="space-y-6">
+          <!-- KPIs -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200">
+              <p class="text-xs font-bold uppercase text-slate-400">Total Registrados</p>
+              <p id="kpi-total" class="text-3xl font-extrabold text-slate-800 mt-1">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200">
+              <p class="text-xs font-bold uppercase text-emerald-600">Pasaron por Control</p>
+              <p id="kpi-asistieron" class="text-3xl font-extrabold text-emerald-600 mt-1">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200">
+              <p class="text-xs font-bold uppercase text-amber-600">Faltan por Votar</p>
+              <p id="kpi-faltan" class="text-3xl font-extrabold text-amber-600 mt-1">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200">
+              <p class="text-xs font-bold uppercase text-blue-600">% Cumplimiento</p>
+              <p id="kpi-porcentaje" class="text-3xl font-extrabold text-blue-600 mt-1">0%</p>
+            </div>
+          </div>
+
+          <!-- Rendimiento por Líderes -->
+          <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+              <h3 class="font-bold text-slate-800">Cumplimiento por Líder</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                  <tr>
+                    <th class="px-4 py-3">Código</th>
+                    <th class="px-4 py-3">Líder</th>
+                    <th class="px-4 py-3 text-center">Meta</th>
+                    <th class="px-4 py-3 text-center">Votaron</th>
+                    <th class="px-4 py-3 text-center">Faltan</th>
+                    <th class="px-4 py-3">Progreso</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-lideres-stats" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Listado Detallado de Votantes -->
+          <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row gap-3 justify-between sm:items-center">
+              <h3 class="font-bold text-slate-800">Listado de Votantes y Estado</h3>
+              <input type="text" id="filtro-votantes" onkeyup="filtrarTablaVotantes()" placeholder="Buscar por cédula, nombre o líder..." class="px-3 py-2 border border-slate-300 rounded-xl text-sm w-full sm:w-72 outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                  <tr>
+                    <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3">Cédula</th>
+                    <th class="px-4 py-3">Votante</th>
+                    <th class="px-4 py-3">Puesto / Mesa</th>
+                    <th class="px-4 py-3">Jurado</th>
+                    <th class="px-4 py-3">Líder</th>
+                    <th class="px-4 py-3 text-right admin-only-col">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-votantes" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECCIÓN 2: ANEXAR / VERIFICAR VOTANTE -->
+        <section id="sec-registro" class="hidden max-w-3xl mx-auto">
+          <div class="bg-white p-6 lg:p-8 rounded-2xl shadow-xs border border-slate-200 space-y-6">
+            <div>
+              <h2 class="text-xl font-bold text-slate-800" id="titulo-form-votante">Anexar Nuevo Votante</h2>
+              <p class="text-sm text-slate-500">Digita la cédula para verificar si ya tiene líder o traer sus datos de la bodega histórica.</p>
+            </div>
+
+            <!-- Buscador rápido CC -->
+            <div class="flex gap-2">
+              <input type="number" id="vot-cc" placeholder="Número de Cédula (CC)" class="flex-1 px-4 py-3 border border-slate-300 rounded-xl font-mono text-lg outline-none focus:ring-2 focus:ring-blue-600" />
+              <button type="button" onclick="verificarCedulaPreRegistro()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass"></i> Verificar
+              </button>
+            </div>
+
+            <!-- Alerta de Resultado de Búsqueda -->
+            <div id="alerta-preregistro" class="hidden p-4 rounded-xl text-sm font-medium border"></div>
+
+            <!-- Formulario de Datos -->
+            <form id="form-votante" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="hidden" id="vot-es-edicion" value="false" />
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre Completo *</label>
+                <input type="text" id="vot-nombre" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl uppercase outline-none focus:ring-2 focus:ring-blue-600" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Municipio *</label>
+                <input type="text" id="vot-muni" list="lista-municipios" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl uppercase outline-none focus:ring-2 focus:ring-blue-600" />
+                <datalist id="lista-municipios"></datalist>
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Puesto de Votación *</label>
+                <input type="text" id="vot-puesto" list="lista-puestos" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl uppercase outline-none focus:ring-2 focus:ring-blue-600" />
+                <datalist id="lista-puestos"></datalist>
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Mesa *</label>
+                <input type="text" id="vot-mesa" required class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-600" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">¿Es Jurado de Votación?</label>
+                <select id="vot-jurado" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-600">
+                  <option value="NO">NO</option>
+                  <option value="SÍ">SÍ</option>
+                </select>
+              </div>
+              <div id="div-asignar-lider" class="md:col-span-2 hidden">
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Código de Líder Asignado</label>
+                <input type="text" id="vot-lider-codigo" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl uppercase outline-none focus:ring-2 focus:ring-blue-600" />
+              </div>
+
+              <div class="md:col-span-2 flex gap-3 pt-2">
+                <button type="submit" id="btn-guardar-votante" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-md transition">
+                  Guardar Votante
+                </button>
+                <button type="button" onclick="resetFormVotante()" class="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl">
+                  Limpiar
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- SECCIÓN 3: PUESTO DE CONTROL (DÍA D) -->
+        <section id="sec-control" class="hidden max-w-2xl mx-auto space-y-6">
+          <div class="bg-white p-6 lg:p-8 rounded-2xl shadow-xs border border-slate-200 space-y-5">
+            <div class="text-center">
+              <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Módulo Día Electoral</span>
+              <h2 class="text-2xl font-bold text-slate-800 mt-2">Puesto de Control y Asistencia</h2>
+              <p class="text-sm text-slate-500">Consulta la cédula para validar puesto, mesa y confirmar el voto.</p>
+            </div>
+
+            <div class="flex gap-2">
+              <input type="number" id="ctrl-cc" placeholder="Ingrese Cédula del Votante..." class="flex-1 px-4 py-3.5 border-2 border-slate-300 rounded-xl font-mono text-xl outline-none focus:border-amber-500" />
+              <button onclick="consultarPuestoControl()" class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3.5 rounded-xl font-bold shadow-md">
+                Buscar
+              </button>
+            </div>
+
+            <!-- Ficha de Resultado Puesto de Control -->
+            <div id="ctrl-resultado" class="hidden border-2 rounded-2xl p-6 space-y-4">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-xs font-bold uppercase text-slate-400">Votante</p>
+                  <h3 id="ctrl-nombre" class="text-xl font-extrabold text-slate-900">---</h3>
+                  <p id="ctrl-doc" class="font-mono text-sm text-slate-600">CC: ---</p>
+                </div>
+                <span id="ctrl-badge-estado" class="px-3 py-1 rounded-full text-xs font-bold">---</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl text-sm">
+                <div>
+                  <span class="text-slate-400 block text-xs">Puesto de Votación</span>
+                  <strong id="ctrl-puesto" class="text-slate-800">---</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-xs">Mesa</span>
+                  <strong id="ctrl-mesa" class="text-slate-800 text-lg">---</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-xs">¿Es Jurado?</span>
+                  <strong id="ctrl-jurado" class="text-slate-800">---</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-xs">Líder Responsable</span>
+                  <strong id="ctrl-lider" class="text-blue-700">---</strong>
+                </div>
+              </div>
+
+              <button id="btn-confirmar-asistencia" onclick="confirmarAsistenciaControl()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-4 rounded-xl text-lg shadow-lg transition">
+                <i class="fa-solid fa-check-double mr-2"></i> CONFIRMAR ASISTENCIA AL PUESTO
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECCIÓN 4: GESTIÓN DE USUARIOS Y ROLES (SOLO ADMIN) -->
+        <section id="sec-usuarios" class="hidden space-y-6">
+          <div class="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-800 mb-4" id="titulo-form-usuario">Crear / Editar Usuario del Sistema</h3>
+            <form id="form-usuario" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input type="hidden" id="usr-es-edicion" value="false" />
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Usuario (Login) *</label>
+                <input type="text" id="usr-user" required class="w-full px-3 py-2 border border-slate-300 rounded-xl lowercase" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña *</label>
+                <input type="password" id="usr-pass" placeholder="Dejar vacía si no cambia" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Rol del Sistema *</label>
+                <select id="usr-rol" class="w-full px-3 py-2 border border-slate-300 rounded-xl font-semibold">
+                  <option value="LIDER">LÍDER (Solo Anexa y Verifica)</option>
+                  <option value="CONTROL">PUESTO DE CONTROL (Solo Día D)</option>
+                  <option value="ADMIN">ADMINISTRADOR (Control Total)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Código Interno *</label>
+                <input type="text" id="usr-codigo" required placeholder="Ej: L01" class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre Completo *</label>
+                <input type="text" id="usr-nombre" required class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cédula</label>
+                <input type="text" id="usr-cc" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Teléfono</label>
+                <input type="text" id="usr-tel" class="w-full px-3 py-2 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Barrio</label>
+                <input type="text" id="usr-barrio" class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Dirección</label>
+                <input type="text" id="usr-dir" class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase" />
+              </div>
+              <div class="md:col-span-3 flex gap-3">
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-2.5 rounded-xl">
+                  Guardar Usuario
+                </button>
+                <button type="button" onclick="resetFormUsuario()" class="bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tabla de Usuarios -->
+          <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-200">
+              <h3 class="font-bold text-slate-800">Usuarios Registrados y Control de Acceso</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                  <tr>
+                    <th class="px-4 py-3">Usuario</th>
+                    <th class="px-4 py-3">Nombre</th>
+                    <th class="px-4 py-3">Código</th>
+                    <th class="px-4 py-3">Rol</th>
+                    <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-usuarios" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // PEGA AQUÍ LA URL DE TU IMPLEMENTACIÓN DE GOOGLE APPS SCRIPT (/exec)
+    // =========================================================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbwkhwirg33DC6yRa3D35gRmtYsMa2N-mIpn8yi3O-geFJ5Qlynp_cu3CD4oJbecLGZvAA/exec";
+
+    let currentUser = null;
+    let votantesCache = [];
+    let votanteControlActual = null;
+
+    // Cliente API (usa text/plain para evitar bloqueos CORS preflight en GitHub Pages)
+    async function callAPI(payload) {
+      showLoader(true);
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch (err) {
+        alert("Error de conexión con el servidor: " + err.message);
+        return { ok: false };
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    function showLoader(show, text = "Procesando...") {
+      document.getElementById("loader-text").innerText = text;
+      document.getElementById("loader").classList.toggle("hidden", !show);
+    }
+
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("-translate-x-full");
+      document.getElementById("sidebar-overlay").classList.toggle("hidden");
+    }
+
+    // --- LOGIN Y ROLES ---
+    document.getElementById("form-login").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const user = document.getElementById("login-user").value;
+      const pass = document.getElementById("login-pass").value;
+
+      const res = await callAPI({ action: "login", user, pass });
+      if (res.ok) {
+        currentUser = res;
+        localStorage.setItem("electoral_session", JSON.stringify(res));
+        iniciarApp();
+      } else {
+        alert(res.mensaje || "Error de acceso");
+      }
+    });
+
+    function iniciarApp() {
+      document.getElementById("view-login").classList.add("hidden");
+      document.getElementById("app-shell").classList.remove("hidden");
+
+      document.getElementById("user-display-name").innerText = currentUser.nombre;
+      document.getElementById("user-display-code").innerText = "COD: " + currentUser.codigo;
+      document.getElementById("badge-rol").innerText = currentUser.rol;
+
+      // Control de visibilidad por Rol
+      const isAdmin = currentUser.rol === "ADMIN";
+      const isControl = currentUser.rol === "CONTROL";
+
+      document.getElementById("menu-usuarios").classList.toggle("hidden", !isAdmin);
+      document.getElementById("div-asignar-lider").classList.toggle("hidden", !isAdmin);
+      document.getElementById("menu-registro").classList.toggle("hidden", isControl);
+
+      document.querySelectorAll(".admin-only-col").forEach(el => {
+        el.classList.toggle("hidden", !isAdmin);
+      });
+
+      cargarAjustes();
+      if (isControl) {
+        navegar("control");
+      } else {
+        navegar("dashboard");
+      }
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem("electoral_session");
+      location.reload();
+    }
+
+    function navegar(vista) {
+      ["dashboard", "registro", "control", "usuarios"].forEach(sec => {
+        document.getElementById("sec-" + sec).classList.add("hidden");
+      });
+      document.getElementById("sec-" + vista).classList.remove("hidden");
+
+      const titulos = {
+        dashboard: "Reportes y Avance en Tiempo Real",
+        registro: "Anexar y Verificar Votantes",
+        control: "Puesto de Control Electoral",
+        usuarios: "Administración de Usuarios y Roles"
+      };
+      document.getElementById("page-title").innerText = titulos[vista];
+
+      if (window.innerWidth < 1024) {
+        document.getElementById("sidebar").classList.add("-translate-x-full");
+        document.getElementById("sidebar-overlay").classList.add("hidden");
+      }
+
+      if (vista === "dashboard") cargarEstadisticas();
+      if (vista === "usuarios") cargarUsuarios();
+      if (vista === "registro" && !document.getElementById("vot-lider-codigo").value) {
+        document.getElementById("vot-lider-codigo").value = currentUser.codigo;
+      }
+    }
+
+    async function cargarAjustes() {
+      const res = await callAPI({ action: "ajustes" });
+      if (res.ok) {
+        document.getElementById("lista-municipios").innerHTML = res.municipios.map(m => `<option value="${m}">`).join("");
+        document.getElementById("lista-puestos").innerHTML = res.puestos.map(p => `<option value="${p}">`).join("");
+      }
+    }
+
+    // --- DOBLE BÚSQUEDA ANTES DE REGISTRAR ---
+    async function verificarCedulaPreRegistro() {
+      const cc = document.getElementById("vot-cc").value.trim();
+      if (!cc) return alert("Ingrese una cédula para verificar.");
+
+      const res = await callAPI({ action: "buscarPreRegistro", cc });
+      const alerta = document.getElementById("alerta-preregistro");
+      const btnGuardar = document.getElementById("btn-guardar-votante");
+      alerta.classList.remove("hidden", "bg-red-50", "text-red-800", "border-red-300", "bg-blue-50", "text-blue-800", "border-blue-300", "bg-emerald-50", "text-emerald-800", "border-emerald-300");
+
+      if (res.estado === "YA_ASIGNADO") {
+        alerta.classList.add("bg-red-50", "text-red-800", "border-red-300");
+        alerta.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> <strong>${res.mensaje}</strong>`;
+        // Llenar datos solo para visualización y bloquear guardado si es LIDER
+        document.getElementById("vot-nombre").value = res.datos.nombre;
+        document.getElementById("vot-muni").value = res.datos.municipio;
+        document.getElementById("vot-puesto").value = res.datos.puesto;
+        document.getElementById("vot-mesa").value = res.datos.mesa;
+        document.getElementById("vot-jurado").value = res.datos.jurado;
+        btnGuardar.disabled = (currentUser.rol !== "ADMIN");
+        btnGuardar.classList.toggle("opacity-50", currentUser.rol !== "ADMIN");
+      } else if (res.estado === "EN_BODEGA") {
+        alerta.classList.add("bg-blue-50", "text-blue-800", "border-blue-300");
+        alerta.innerHTML = `<i class="fa-solid fa-database mr-2"></i> ${res.mensaje}`;
+        document.getElementById("vot-nombre").value = res.datos.nombre;
+        document.getElementById("vot-muni").value = res.datos.municipio;
+        document.getElementById("vot-puesto").value = res.datos.puesto;
+        document.getElementById("vot-mesa").value = res.datos.mesa;
+        document.getElementById("vot-jurado").value = res.datos.jurado;
+        btnGuardar.disabled = false;
+        btnGuardar.classList.remove("opacity-50");
+      } else {
+        alerta.classList.add("bg-emerald-50", "text-emerald-800", "border-emerald-300");
+        alerta.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> ${res.mensaje}`;
+        btnGuardar.disabled = false;
+        btnGuardar.classList.remove("opacity-50");
+      }
+    }
+
+    // --- GUARDAR / EDITAR VOTANTE ---
+    document.getElementById("form-votante").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const esEdicion = document.getElementById("vot-es-edicion").value === "true";
+      const data = {
+        cc: document.getElementById("vot-cc").value.trim(),
+        nombre: document.getElementById("vot-nombre").value.trim(),
+        municipio: document.getElementById("vot-muni").value.trim(),
+        puesto: document.getElementById("vot-puesto").value.trim(),
+        mesa: document.getElementById("vot-mesa").value.trim(),
+        jurado: document.getElementById("vot-jurado").value,
+        codigoLider: currentUser.rol === "ADMIN"
+          ? (document.getElementById("vot-lider-codigo").value.trim() || currentUser.codigo)
+          : currentUser.codigo
+      };
+
+      const res = await callAPI({ action: "guardarVotante", data, esEdicion, rol: currentUser.rol });
+      alert(res.mensaje);
+      if (res.ok) resetFormVotante();
+    });
+
+    function resetFormVotante() {
+      document.getElementById("form-votante").reset();
+      document.getElementById("vot-cc").value = "";
+      document.getElementById("vot-cc").readOnly = false;
+      document.getElementById("vot-es-edicion").value = "false";
+      document.getElementById("titulo-form-votante").innerText = "Anexar Nuevo Votante";
+      document.getElementById("alerta-preregistro").classList.add("hidden");
+      document.getElementById("vot-lider-codigo").value = currentUser.codigo;
+    }
+
+    function editarVotanteAdmin(v) {
+      navegar("registro");
+      document.getElementById("titulo-form-votante").innerText = "Editar Votante (Modo Admin)";
+      document.getElementById("vot-es-edicion").value = "true";
+      document.getElementById("vot-cc").value = v.cc;
+      document.getElementById("vot-cc").readOnly = true;
+      document.getElementById("vot-nombre").value = v.nombre;
+      document.getElementById("vot-muni").value = v.municipio;
+      document.getElementById("vot-puesto").value = v.puesto;
+      document.getElementById("vot-mesa").value = v.mesa;
+      document.getElementById("vot-jurado").value = v.jurado;
+      document.getElementById("vot-lider-codigo").value = v.codigoLider;
+    }
+
+    async function eliminarVotanteAdmin(cc) {
+      if (!confirm(`¿Seguro que deseas eliminar la cédula ${cc} de la base principal?`)) return;
+      const res = await callAPI({ action: "eliminarVotante", cc, rol: currentUser.rol });
+      alert(res.mensaje);
+      if (res.ok) cargarEstadisticas();
+    }
+
+    // --- PUESTO DE CONTROL ---
+    async function consultarPuestoControl() {
+      const cc = document.getElementById("ctrl-cc").value.trim();
+      if (!cc) return alert("Ingrese una cédula.");
+
+      const res = await callAPI({ action: "buscarControl", cc });
+      const card = document.getElementById("ctrl-resultado");
+
+      if (!res.existe) {
+        card.classList.add("hidden");
+        return alert(res.mensaje);
+      }
+
+      votanteControlActual = res;
+      card.classList.remove("hidden", "border-emerald-400", "border-amber-400");
+      document.getElementById("ctrl-nombre").innerText = res.nombre;
+      document.getElementById("ctrl-doc").innerText = "CC: " + res.cc;
+      document.getElementById("ctrl-puesto").innerText = res.puesto;
+      document.getElementById("ctrl-mesa").innerText = res.mesa;
+      document.getElementById("ctrl-jurado").innerText = res.jurado;
+      document.getElementById("ctrl-lider").innerText = `${res.nombreLider} (${res.codigoLider})`;
+
+      const badge = document.getElementById("ctrl-badge-estado");
+      const btn = document.getElementById("btn-confirmar-asistencia");
+
+      if (res.yaAsistio) {
+        card.classList.add("border-emerald-400");
+        badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800";
+        badge.innerText = "YA VOTÓ / REGISTRADO";
+        btn.disabled = true;
+        btn.classList.add("opacity-50", "cursor-not-allowed");
+        btn.innerText = "ASISTENCIA YA CONFIRMADA ANTERIORMENTE";
+      } else {
+        card.classList.add("border-amber-400");
+        badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800";
+        badge.innerText = "PENDIENTE POR VOTAR";
+        btn.disabled = false;
+        btn.classList.remove("opacity-50", "cursor-not-allowed");
+        btn.innerHTML = `<i class="fa-solid fa-check-double mr-2"></i> CONFIRMAR ASISTENCIA AL PUESTO`;
+      }
+    }
+
+    async function confirmarAsistenciaControl() {
+      if (!votanteControlActual) return;
+      const payload = {
+        action: "registrarAsistencia",
+        data: {
+          ...votanteControlActual,
+          registradoPor: currentUser.usuario
+        }
+      };
+      const res = await callAPI(payload);
+      alert(res.mensaje);
+      if (res.ok) {
+        document.getElementById("ctrl-cc").value = "";
+        document.getElementById("ctrl-resultado").classList.add("hidden");
+      }
+    }
+
+    // --- DASHBOARD Y REPORTES ---
+    async function cargarEstadisticas() {
+      const res = await callAPI({
+        action: "estadisticas",
+        userCode: currentUser.codigo,
+        rol: currentUser.rol
+      });
+      if (!res.ok) return;
+
+      document.getElementById("kpi-total").innerText = res.kpis.total;
+      document.getElementById("kpi-asistieron").innerText = res.kpis.asistieron;
+      document.getElementById("kpi-faltan").innerText = res.kpis.faltan;
+      document.getElementById("kpi-porcentaje").innerText = res.kpis.porcentaje + "%";
+
+      // Tabla líderes
+      document.getElementById("tabla-lideres-stats").innerHTML = res.resumenLideres.map(l => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono font-bold text-blue-600">${l.codigo}</td>
+          <td class="px-4 py-3 font-semibold">${l.nombre}</td>
+          <td class="px-4 py-3 text-center font-bold">${l.total}</td>
+          <td class="px-4 py-3 text-center text-emerald-600 font-bold">${l.asistieron}</td>
+          <td class="px-4 py-3 text-center text-amber-600 font-bold">${l.faltan}</td>
+          <td class="px-4 py-3 w-48">
+            <div class="flex items-center gap-2">
+              <div class="w-full bg-slate-200 rounded-full h-2.5">
+                <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${l.porcentaje}%"></div>
+              </div>
+              <span class="text-xs font-bold">${l.porcentaje}%</span>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      votantesCache = res.lista;
+      renderTablaVotantes(votantesCache);
+    }
+
+    function renderTablaVotantes(lista) {
+      const isAdmin = currentUser.rol === "ADMIN";
+      document.getElementById("tabla-votantes").innerHTML = lista.map(v => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3">
+            ${v.asistio
+              ? '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">PASÓ</span>'
+              : '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">FALTA</span>'}
+          </td>
+          <td class="px-4 py-3 font-mono">${v.cc}</td>
+          <td class="px-4 py-3 font-semibold">${v.nombre}</td>
+          <td class="px-4 py-3 text-xs">${v.puesto} <strong class="text-blue-600">(Mesa ${v.mesa})</strong></td>
+          <td class="px-4 py-3">${v.jurado}</td>
+          <td class="px-4 py-3 text-xs font-medium">${v.nombreLider}</td>
+          ${isAdmin ? `
+            <td class="px-4 py-3 text-right space-x-2">
+              <button onclick='editarVotanteAdmin(${JSON.stringify(v)})' class="text-blue-600 hover:underline font-semibold">Editar</button>
+              <button onclick="eliminarVotanteAdmin('${v.cc}')" class="text-red-600 hover:underline font-semibold">Eliminar</button>
+            </td>` : ''}
+        </tr>
+      `).join("");
+    }
+
+    function filtrarTablaVotantes() {
+      const q = document.getElementById("filtro-votantes").value.toLowerCase();
+      const filtrados = votantesCache.filter(v =>
+        v.cc.includes(q) || v.nombre.toLowerCase().includes(q) || v.nombreLider.toLowerCase().includes(q)
+      );
+      renderTablaVotantes(filtrados);
+    }
+
+    // --- GESTIÓN DE USUARIOS Y ROLES (ADMIN) ---
+    async function cargarUsuarios() {
+      const res = await callAPI({ action: "listarUsuarios" });
+      if (!res.ok) return;
+
+      document.getElementById("tabla-usuarios").innerHTML = res.lista.map(u => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono font-bold">${u.usuario}</td>
+          <td class="px-4 py-3">${u.nombre}</td>
+          <td class="px-4 py-3 font-mono">${u.codigo}</td>
+          <td class="px-4 py-3"><span class="px-2 py-0.5 bg-slate-200 rounded text-xs font-bold">${u.rol}</span></td>
+          <td class="px-4 py-3">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${u.estado === 'ACTIVO' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+              ${u.estado}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right space-x-2">
+            <button onclick='editarUsuarioForm(${JSON.stringify(u)})' class="text-blue-600 hover:underline font-semibold">Editar</button>
+            <button onclick="toggleEstadoUsuario('${u.usuario}', '${u.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'}')" class="text-amber-600 hover:underline font-semibold">
+              ${u.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'}
+            </button>
+            <button onclick="borrarUsuario('${u.usuario}')" class="text-red-600 hover:underline font-semibold">Eliminar</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    document.getElementById("form-usuario").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const esEdicion = document.getElementById("usr-es-edicion").value === "true";
+      const data = {
+        usuario: document.getElementById("usr-user").value,
+        clave: document.getElementById("usr-pass").value,
+        rol: document.getElementById("usr-rol").value,
+        codigo: document.getElementById("usr-codigo").value,
+        nombre: document.getElementById("usr-nombre").value,
+        cc: document.getElementById("usr-cc").value,
+        telefono: document.getElementById("usr-tel").value,
+        barrio: document.getElementById("usr-barrio").value,
+        direccion: document.getElementById("usr-dir").value,
+        cumpleanos: ""
+      };
+      if (!esEdicion && !data.clave) return alert("Debes asignar una contraseña al crear un usuario.");
+
+      const res = await callAPI({ action: "guardarUsuario", data, esEdicion });
+      alert(res.mensaje);
+      if (res.ok) {
+        resetFormUsuario();
+        cargarUsuarios();
+      }
+    });
+
+    function editarUsuarioForm(u) {
+      document.getElementById("usr-es-edicion").value = "true";
+      document.getElementById("usr-user").value = u.usuario;
+      document.getElementById("usr-user").readOnly = true;
+      document.getElementById("usr-pass").value = "";
+      document.getElementById("usr-rol").value = u.rol;
+      document.getElementById("usr-codigo").value = u.codigo;
+      document.getElementById("usr-nombre").value = u.nombre;
+      document.getElementById("usr-cc").value = u.cc;
+      document.getElementById("usr-tel").value = u.telefono;
+      document.getElementById("usr-barrio").value = u.barrio;
+      document.getElementById("usr-dir").value = u.direccion;
+    }
+
+    function resetFormUsuario() {
+      document.getElementById("form-usuario").reset();
+      document.getElementById("usr-user").readOnly = false;
+      document.getElementById("usr-es-edicion").value = "false";
+    }
+
+    async function toggleEstadoUsuario(usuario, nuevoEstado) {
+      const res = await callAPI({ action: "cambiarEstadoUsuario", usuario, nuevoEstado });
+      alert(res.mensaje);
+      if (res.ok) cargarUsuarios();
+    }
+
+    async function borrarUsuario(usuario) {
+      if (!confirm(`¿Eliminar definitivamente al usuario ${usuario}?`)) return;
+      const res = await callAPI({ action: "eliminarUsuario", usuario });
+      alert(res.mensaje);
+      if (res.ok) cargarUsuarios();
+    }
+
+    // Recuperar sesión activa si recarga la página
+    window.addEventListener("DOMContentLoaded", () => {
+      const saved = localStorage.getItem("electoral_session");
+      if (saved) {
+        currentUser = JSON.parse(saved);
+        iniciarApp();
+      }
+    });
+  </script>
+</body>
+</html>
